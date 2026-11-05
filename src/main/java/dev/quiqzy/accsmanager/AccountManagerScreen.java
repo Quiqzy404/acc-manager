@@ -59,10 +59,9 @@ public final class AccountManagerScreen extends WLScreen {
                 value -> {}
         );
 
-        tokenField
-                .setPlaceholder("Paste Minecraft session token...")
-                .setMaxLength(4096)
-                .setOnSubmit(this::importToken);
+       tokenField.setPlaceholder("Paste Minecraft session token...");
+       tokenField.setMaxLength(4096);
+       tokenField.setOnSubmit(this::importToken);
 
         addDrawableChild(tokenField);
 
