@@ -10,7 +10,8 @@ public final class AccountManager {
     private static final List<AccountProfile> ACCOUNTS =
             new ArrayList<>();
 
-    private AccountManager() {}
+    private AccountManager() {
+    }
 
     public static void add(AccountProfile account) {
         if (account == null) {
