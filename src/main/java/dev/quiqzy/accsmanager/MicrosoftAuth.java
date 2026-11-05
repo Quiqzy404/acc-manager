@@ -13,8 +13,8 @@ import java.util.concurrent.CompletableFuture;
 
 public final class MicrosoftAuth {
 
-    private static final String CLIENT_ID = "YOUR_CLIENT_ID";
-
+    private static final String CLIENT_ID = "maven.modrinth:7P86n6Vg:exxN7KBX";
+    
     private static final HttpClient HTTP = HttpClient.newHttpClient();
 
     private MicrosoftAuth() {}
