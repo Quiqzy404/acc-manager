@@ -1,64 +1,54 @@
 package dev.quiqzy.accsmanager;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import net.raphimc.minecraftauth.MinecraftAuth;
+import net.raphimc.minecraftauth.java.JavaAuthManager;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public final class MicrosoftAuth {
 
-    private static final String CLIENT_ID = "maven.modrinth:7P86n6Vg:exxN7KBX";
-    
-    private static final HttpClient HTTP = HttpClient.newHttpClient();
+    private static final ExecutorService EXECUTOR =
+            Executors.newSingleThreadExecutor();
 
     private MicrosoftAuth() {}
 
-    public record Tokens(String accessToken, String refreshToken) {}
+    public record Result(
+            String name,
+            String uuid,
+            String refreshToken,
+            String authJson
+    ) {}
 
-    public static CompletableFuture<Tokens> refresh(String refreshToken) {
+    public static CompletableFuture<Result> importRefreshToken(
+            String refreshToken
+    ) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                var httpClient =
+                        MinecraftAuth.createHttpClient("AccsManager/0.3.0");
 
-        String body =
-                "client_id=" + encode(CLIENT_ID) +
-                "&grant_type=refresh_token" +
-                "&refresh_token=" + encode(refreshToken) +
-                "&scope=" + encode("XboxLive.signin offline_access");
+                JavaAuthManager authManager =
+                        JavaAuthManager.create(httpClient)
+                                .login(refreshToken.trim());
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(
-                        "https://login.microsoftonline.com/consumers/oauth2/v2.0/token"
-                ))
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .POST(HttpRequest.BodyPublishers.ofString(body))
-                .build();
+                var profile = authManager
+                        .getMinecraftProfile()
+                        .getUpToDate();
 
-        return HTTP.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                .thenApply(response -> {
-                    if (response.statusCode() != 200) {
-                        throw new IllegalStateException(
-                                "Microsoft authentication failed: HTTP "
-                                        + response.statusCode()
-                        );
-                    }
+                String json = JavaAuthManager.toJson(authManager);
 
-                    JsonObject json = JsonParser.parseString(response.body())
-                            .getAsJsonObject();
+                return new Result(
+                        profile.getName(),
+                        profile.getId(),
+                        refreshToken.trim(),
+                        json
+                );
 
-                    return new Tokens(
-                            json.get("access_token").getAsString(),
-                            json.has("refresh_token")
-                                    ? json.get("refresh_token").getAsString()
-                                    : refreshToken
-                    );
-                });
-    }
-
-    private static String encode(String value) {
-        return URLEncoder.encode(value, StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                throw new RuntimeException("Microsoft authentication failed", e);
+            }
+        }, EXECUTOR);
     }
 }
