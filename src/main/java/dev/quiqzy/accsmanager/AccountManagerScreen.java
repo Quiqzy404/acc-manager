@@ -50,22 +50,21 @@ public final class AccountManagerScreen extends WLScreen {
         int contentX = x + sidebarW + 24;
         int contentW = w - sidebarW - 48;
 
-        // SESSION TOKEN INPUT
         tokenField = new SearchBar(
                 contentX + 18,
                 y + 120,
                 contentW - 36,
                 38,
-                value -> {}
+                value -> {
+                }
         );
 
-       tokenField.setPlaceholder("Paste Minecraft session token...");
-       tokenField.setMaxLength(4096);
-       tokenField.setOnSubmit(this::importToken);
+        tokenField.setPlaceholder("Paste Minecraft session token...");
+        tokenField.setMaxLength(4096);
+        tokenField.setOnSubmit(this::importToken);
 
         addDrawableChild(tokenField);
 
-        // VERIFY TOKEN BUTTON
         addDrawableChild(
                 new WLButton(
                         contentX + 18,
@@ -77,7 +76,6 @@ public final class AccountManagerScreen extends WLScreen {
                 ).setCornerRadius(17)
         );
 
-        // CLOSE BUTTON
         addDrawableChild(
                 new WLButton(
                         x + w - 118,
@@ -111,11 +109,21 @@ public final class AccountManagerScreen extends WLScreen {
 
                         if (error != null) {
                             status = "Invalid or expired token";
-                        } else {
-                            status = "Verified account: " + profile.name();
-                            tokenField.setValue("");
+                            return;
                         }
 
+                        AccountProfile account = new AccountProfile(
+                                profile.name(),
+                                profile.uuid(),
+                                token,
+                                ""
+                        );
+
+                        AccountManager.add(account);
+
+                        status = "Added account: " + profile.name();
+
+                        tokenField.setValue("");
                     });
                 });
     }
@@ -201,14 +209,12 @@ public final class AccountManagerScreen extends WLScreen {
         int contentW = w - sidebarW - 48;
         int contentRight = x + w - 24;
 
-        // MAIN GLASS WINDOW
         g.glass()
                 .dimensions(x, y, w, h)
                 .cornerRadius(28)
                 .style(mainGlass())
                 .extract();
 
-        // GLASS SIDEBAR
         g.glass()
                 .dimensions(
                         x + 12,
@@ -220,7 +226,6 @@ public final class AccountManagerScreen extends WLScreen {
                 .style(sidebarGlass())
                 .extract();
 
-        // MAIN CONTENT GLASS
         g.glass()
                 .dimensions(
                         contentX,
@@ -232,7 +237,6 @@ public final class AccountManagerScreen extends WLScreen {
                 .style(surfaceGlass())
                 .extract();
 
-        // TOP LIGHT REFLECTION
         g.fillRoundedGradient(
                 x + 22, y + 1,
                 x + w - 22, y + 2,
@@ -243,7 +247,6 @@ public final class AccountManagerScreen extends WLScreen {
                 1
         );
 
-        // SIDEBAR
         g.text(textRenderer, "A C C S",
                 x + 30, y + 30, WHITE);
 
@@ -263,7 +266,6 @@ public final class AccountManagerScreen extends WLScreen {
         g.text(textRenderer, "LIBRARY",
                 x + 28, y + 100, MUTED);
 
-        // SELECTED SIDEBAR ITEM
         g.glass()
                 .dimensions(
                         x + 20,
@@ -291,14 +293,12 @@ public final class AccountManagerScreen extends WLScreen {
         g.text(textRenderer, "Local to this device",
                 x + 38, y + 228, MUTED);
 
-        // SIDEBAR FOOTER
         g.text(textRenderer, "MINECRAFT",
                 x + 28, y + h - 64, MUTED);
 
         g.text(textRenderer, "1.21.11 / FABRIC",
                 x + 28, y + h - 45, SECONDARY);
 
-        // CONTENT HEADER
         g.text(textRenderer, "Your accounts",
                 contentX + 4, y + 34, WHITE);
 
@@ -318,11 +318,10 @@ public final class AccountManagerScreen extends WLScreen {
                 ACCENT
         );
 
-        // EMPTY STATE GLASS PANEL
         int cardX = contentX + 18;
         int cardY = y + 220;
         int cardW = contentW - 36;
-        int cardH = Math.max(70, Math.min(190, h - 290));
+        int cardH = Math.max(130, Math.min(190, h - 230));
 
         g.glass()
                 .dimensions(cardX, cardY, cardW, cardH)
@@ -330,7 +329,6 @@ public final class AccountManagerScreen extends WLScreen {
                 .style(surfaceGlass().layer(3))
                 .extract();
 
-        // GLASS ICON
         g.radialGlow(
                 cardX + cardW / 2f,
                 cardY + 55,
@@ -361,7 +359,6 @@ public final class AccountManagerScreen extends WLScreen {
                 )
                 .extract();
 
-        // EMPTY STATE TEXT
         String title = "No accounts connected";
 
         g.text(
@@ -382,7 +379,6 @@ public final class AccountManagerScreen extends WLScreen {
                 SECONDARY
         );
 
-        // FOOTER
         g.text(
                 textRenderer,
                 status,
