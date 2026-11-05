@@ -37,17 +37,20 @@ public final class MicrosoftAuth {
                         .getMinecraftProfile()
                         .getUpToDate();
 
-                String json = JavaAuthManager.toJson(authManager);
+                String json =
+                        JavaAuthManager.toJson(authManager).toString();
 
                 return new Result(
                         profile.getName(),
-                        profile.getId(),
+                        profile.getId().toString(),
                         refreshToken.trim(),
                         json
                 );
 
             } catch (Exception e) {
-                throw new RuntimeException("Microsoft authentication failed", e);
+                throw new RuntimeException(
+                        "Microsoft authentication failed", e
+                );
             }
         }, EXECUTOR);
     }

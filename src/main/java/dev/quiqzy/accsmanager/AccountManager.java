@@ -9,19 +9,23 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public final class AccountManager {
 
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Gson GSON =
+            new GsonBuilder().setPrettyPrinting().create();
 
-    private static final Path FILE = FabricLoader.getInstance()
-            .getConfigDir()
-            .resolve("accs-manager/accounts.json");
+    private static final Path FILE =
+            FabricLoader.getInstance()
+                    .getConfigDir()
+                    .resolve("accs-manager/accounts.json");
 
-    private static final List<AccountProfile> ACCOUNTS = new ArrayList<>();
+    private static final List<AccountProfile> ACCOUNTS =
+            new ArrayList<>();
 
     private AccountManager() {}
 
@@ -33,7 +37,8 @@ public final class AccountManager {
                 return;
             }
 
-            Type type = new TypeToken<List<AccountProfile>>() {}.getType();
+            Type type =
+                    new TypeToken<List<AccountProfile>>() {}.getType();
 
             List<AccountProfile> loaded =
                     GSON.fromJson(Files.readString(FILE), type);
@@ -50,6 +55,10 @@ public final class AccountManager {
     }
 
     public static synchronized void add(AccountProfile account) {
+        if (account == null) {
+            return;
+        }
+
         ACCOUNTS.removeIf(existing ->
                 existing.uuid().equals(account.uuid()));
 
@@ -65,24 +74,33 @@ public final class AccountManager {
     }
 
     public static synchronized List<AccountProfile> getAccounts() {
-        return Collections.unmodifiableList(new ArrayList<>(ACCOUNTS));
+        return Collections.unmodifiableList(
+                new ArrayList<>(ACCOUNTS)
+        );
     }
 
     public static synchronized void save() {
         try {
             Files.createDirectories(FILE.getParent());
 
-            Path temp = FILE.resolveSibling("accounts.tmp");
+            Path temp =
+                    FILE.resolveSibling("accounts.tmp");
 
             Files.writeString(temp, GSON.toJson(ACCOUNTS));
 
             try {
-                Files.move(temp, FILE,
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING,
-                        java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+                Files.move(
+                        temp,
+                        FILE,
+                        StandardCopyOption.REPLACE_EXISTING,
+                        StandardCopyOption.ATOMIC_MOVE
+                );
             } catch (IOException e) {
-                Files.move(temp, FILE,
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                Files.move(
+                        temp,
+                        FILE,
+                        StandardCopyOption.REPLACE_EXISTING
+                );
             }
 
         } catch (Exception e) {

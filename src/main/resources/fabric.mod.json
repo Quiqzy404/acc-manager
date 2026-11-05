@@ -3,12 +3,18 @@
   "id": "accs_manager",
   "version": "${version}",
   "name": "Accs Manager",
-  "description": "A WalksyLib-based account manager interface for Minecraft 1.21.11.",
-  "authors": ["Quiqzy"],
+  "description": "A WalksyLib-based account manager for Minecraft 1.21.11.",
+  "authors": [
+    "Quiqzy"
+  ],
   "environment": "client",
-  "mixins": ["accs-manager.mixins.json"],
+  "mixins": [
+    "accs-manager.mixins.json"
+  ],
   "entrypoints": {
-    "client": ["dev.quiqzy.accsmanager.AccsManagerClient"]
+    "client": [
+      "dev.quiqzy.accsmanager.AccsManagerClient"
+    ]
   },
   "depends": {
     "fabricloader": ">=0.19.5",

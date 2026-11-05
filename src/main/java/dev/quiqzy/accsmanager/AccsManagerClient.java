@@ -25,7 +25,10 @@ public final class AccsManagerClient implements ClientModInitializer {
 
                         ((ScreenAccessor) screen).accsManager$addDrawableChild(
                                 new WLButton(
-                                        x, y, 112, 24,
+                                        x,
+                                        y,
+                                        112,
+                                        24,
                                         "ACCOUNTS",
                                         button -> client.setScreen(
                                                 new AccountManagerScreen(screen)

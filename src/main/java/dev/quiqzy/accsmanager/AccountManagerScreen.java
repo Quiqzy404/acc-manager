@@ -1,4 +1,3 @@
-
 package dev.quiqzy.accsmanager;
 
 import main.walksy.lib.core.gui.WLScreen;
@@ -55,12 +54,11 @@ public final class AccountManagerScreen extends WLScreen {
                 y + 120,
                 contentW - 36,
                 38,
-                value -> {
-                }
+                value -> {}
         );
 
-        tokenField.setPlaceholder("Paste Minecraft session token...");
-        tokenField.setMaxLength(4096);
+        tokenField.setPlaceholder("Paste Microsoft refresh token...");
+        tokenField.setMaxLength(8192);
         tokenField.setOnSubmit(this::importToken);
 
         addDrawableChild(tokenField);
@@ -71,7 +69,7 @@ public final class AccountManagerScreen extends WLScreen {
                         y + 168,
                         contentW - 36,
                         34,
-                        "VERIFY TOKEN",
+                        "IMPORT ACCOUNT",
                         button -> importToken()
                 ).setCornerRadius(17)
         );
@@ -89,17 +87,17 @@ public final class AccountManagerScreen extends WLScreen {
     }
 
     private void importToken() {
-        String token = tokenField.getValue().trim();
+        String refreshToken = tokenField.getValue().trim();
 
-        if (!SessionTokenAuth.isValidFormat(token)) {
-            status = "Invalid token format";
+        if (refreshToken.isEmpty()) {
+            status = "Enter a refresh token first";
             return;
         }
 
-        status = "Checking Minecraft account...";
+        status = "Authenticating Microsoft account...";
 
-        SessionTokenAuth.fetchProfile(token)
-                .whenComplete((profile, error) -> {
+        MicrosoftAuth.importRefreshToken(refreshToken)
+                .whenComplete((result, error) -> {
 
                     if (client == null) {
                         return;
@@ -108,20 +106,20 @@ public final class AccountManagerScreen extends WLScreen {
                     client.execute(() -> {
 
                         if (error != null) {
-                            status = "Invalid or expired token";
+                            status = "Authentication failed";
                             return;
                         }
 
                         AccountProfile account = new AccountProfile(
-                                profile.name(),
-                                profile.uuid(),
-                                token,
-                                ""
+                                result.name(),
+                                result.uuid(),
+                                result.refreshToken(),
+                                result.authJson()
                         );
 
                         AccountManager.add(account);
 
-                        status = "Added account: " + profile.name();
+                        status = "Imported: " + result.name();
 
                         tokenField.setValue("");
                     });
@@ -287,10 +285,10 @@ public final class AccountManagerScreen extends WLScreen {
         g.text(textRenderer, "PREFERENCES",
                 x + 28, y + 184, MUTED);
 
-        g.text(textRenderer, "Secure storage",
+        g.text(textRenderer, "Local storage",
                 x + 38, y + 210, SECONDARY);
 
-        g.text(textRenderer, "Local to this device",
+        g.text(textRenderer, "This device only",
                 x + 38, y + 228, MUTED);
 
         g.text(textRenderer, "MINECRAFT",
@@ -304,7 +302,7 @@ public final class AccountManagerScreen extends WLScreen {
 
         g.text(
                 textRenderer,
-                "Import an existing Minecraft session token.",
+                "Import an existing Microsoft refresh token.",
                 contentX + 4,
                 y + 55,
                 SECONDARY
@@ -312,7 +310,7 @@ public final class AccountManagerScreen extends WLScreen {
 
         g.text(
                 textRenderer,
-                "SESSION IMPORT",
+                "MICROSOFT AUTH",
                 contentRight - 112,
                 y + 82,
                 ACCENT
@@ -359,22 +357,24 @@ public final class AccountManagerScreen extends WLScreen {
                 )
                 .extract();
 
-        String title = "No accounts connected";
+        String title = AccountManager.getAccounts().isEmpty()
+                ? "No accounts connected"
+                : AccountManager.getAccounts().size() + " accounts connected";
 
         g.text(
                 textRenderer,
                 title,
-                cardX + (cardW - textRenderer.width(title)) / 2,
+                cardX + (cardW - textRenderer.getWidth(title)) / 2,
                 cardY + 92,
                 WHITE
         );
 
-        String subtitle = "Verified profiles will appear here.";
+        String subtitle = "Verified profiles are stored locally.";
 
         g.text(
                 textRenderer,
                 subtitle,
-                cardX + (cardW - textRenderer.width(subtitle)) / 2,
+                cardX + (cardW - textRenderer.getWidth(subtitle)) / 2,
                 cardY + 114,
                 SECONDARY
         );
