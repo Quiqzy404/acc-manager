@@ -3,15 +3,20 @@ package dev.quiqzy.accsmanager;
 
 import main.walksy.lib.core.gui.WLScreen;
 import main.walksy.lib.core.gui.widget.WLButton;
+import main.walksy.lib.core.gui.widget.SearchBar;
 import main.walksy.lib.core.render.WLGraphics2D;
 import main.walksy.lib.core.render.glass.api.GlassStyle;
 import main.walksy.lib.core.render.glass.api.LiquidGlassConstants;
+
 import net.minecraft.client.gui.screen.Screen;
 
 public final class AccountManagerScreen extends WLScreen {
 
     private final Screen previous;
-    private String status = "Your accounts will appear here";
+
+    private String status = "No accounts connected";
+
+    private SearchBar tokenField;
 
     private static final int WHITE = 0xFFF4F7FC;
     private static final int SECONDARY = 0xFFB3C0D2;
@@ -41,20 +46,79 @@ public final class AccountManagerScreen extends WLScreen {
         int x = (width - w) / 2;
         int y = (height - h) / 2;
 
-        addDrawableChild(
-                new WLButton(x + w - 190, y + 22, 164, 34,
-                        "ADD ACCOUNT",
-                        button -> status =
-                                "Microsoft sign-in is not implemented yet.")
-                        .setCornerRadius(17)
+        int sidebarW = Math.min(208, Math.max(176, w / 4));
+        int contentX = x + sidebarW + 24;
+        int contentW = w - sidebarW - 48;
+
+        // SESSION TOKEN INPUT
+        tokenField = new SearchBar(
+                contentX + 18,
+                y + 120,
+                contentW - 36,
+                38,
+                value -> {}
         );
 
+        tokenField
+                .setPlaceholder("Paste Minecraft session token...")
+                .setMaxLength(4096)
+                .setOnSubmit(this::importToken);
+
+        addDrawableChild(tokenField);
+
+        // VERIFY TOKEN BUTTON
         addDrawableChild(
-                new WLButton(x + w - 118, y + h - 54, 92, 30,
-                        "CLOSE",
-                        button -> close())
-                        .setCornerRadius(15)
+                new WLButton(
+                        contentX + 18,
+                        y + 168,
+                        contentW - 36,
+                        34,
+                        "VERIFY TOKEN",
+                        button -> importToken()
+                ).setCornerRadius(17)
         );
+
+        // CLOSE BUTTON
+        addDrawableChild(
+                new WLButton(
+                        x + w - 118,
+                        y + h - 54,
+                        92,
+                        30,
+                        "CLOSE",
+                        button -> close()
+                ).setCornerRadius(15)
+        );
+    }
+
+    private void importToken() {
+        String token = tokenField.getValue().trim();
+
+        if (!SessionTokenAuth.isValidFormat(token)) {
+            status = "Invalid token format";
+            return;
+        }
+
+        status = "Checking Minecraft account...";
+
+        SessionTokenAuth.fetchProfile(token)
+                .whenComplete((profile, error) -> {
+
+                    if (client == null) {
+                        return;
+                    }
+
+                    client.execute(() -> {
+
+                        if (error != null) {
+                            status = "Invalid or expired token";
+                        } else {
+                            status = "Verified account: " + profile.name();
+                            tokenField.setValue("");
+                        }
+
+                    });
+                });
     }
 
     private GlassStyle mainGlass() {
@@ -116,10 +180,12 @@ public final class AccountManagerScreen extends WLScreen {
     }
 
     @Override
-    public void extract(WLGraphics2D g,
-                        int mouseX,
-                        int mouseY,
-                        float delta) {
+    public void extract(
+            WLGraphics2D g,
+            int mouseX,
+            int mouseY,
+            float delta
+    ) {
 
         int w = Math.min(900, g.guiWidth() - 48);
         int h = Math.min(560, g.guiHeight() - 48);
@@ -145,16 +211,24 @@ public final class AccountManagerScreen extends WLScreen {
 
         // GLASS SIDEBAR
         g.glass()
-                .dimensions(x + 12, y + 12,
-                        sidebarW, h - 24)
+                .dimensions(
+                        x + 12,
+                        y + 12,
+                        sidebarW,
+                        h - 24
+                )
                 .cornerRadius(22)
                 .style(sidebarGlass())
                 .extract();
 
         // MAIN CONTENT GLASS
         g.glass()
-                .dimensions(contentX, y + 104,
-                        contentW, h - 142)
+                .dimensions(
+                        contentX,
+                        y + 104,
+                        contentW,
+                        h - 142
+                )
                 .cornerRadius(22)
                 .style(surfaceGlass())
                 .extract();
@@ -192,8 +266,12 @@ public final class AccountManagerScreen extends WLScreen {
 
         // SELECTED SIDEBAR ITEM
         g.glass()
-                .dimensions(x + 20, y + 116,
-                        sidebarW - 40, 34)
+                .dimensions(
+                        x + 20,
+                        y + 116,
+                        sidebarW - 40,
+                        34
+                )
                 .cornerRadius(12)
                 .style(sidebarGlass().layer(6))
                 .focus(0.35f)
@@ -202,7 +280,7 @@ public final class AccountManagerScreen extends WLScreen {
         g.text(textRenderer, "Accounts",
                 x + 38, y + 128, WHITE);
 
-        g.text(textRenderer, "All Microsoft profiles",
+        g.text(textRenderer, "Session profiles",
                 x + 38, y + 145, MUTED);
 
         g.text(textRenderer, "PREFERENCES",
@@ -225,18 +303,27 @@ public final class AccountManagerScreen extends WLScreen {
         g.text(textRenderer, "Your accounts",
                 contentX + 4, y + 34, WHITE);
 
-        g.text(textRenderer,
-                "Manage the Microsoft profiles connected to Minecraft.",
-                contentX + 4, y + 55, SECONDARY);
+        g.text(
+                textRenderer,
+                "Import an existing Minecraft session token.",
+                contentX + 4,
+                y + 55,
+                SECONDARY
+        );
 
-        g.text(textRenderer, "0 CONNECTED",
-                contentRight - 100, y + 82, ACCENT);
+        g.text(
+                textRenderer,
+                "SESSION IMPORT",
+                contentRight - 112,
+                y + 82,
+                ACCENT
+        );
 
         // EMPTY STATE GLASS PANEL
         int cardX = contentX + 18;
-        int cardY = y + 128;
+        int cardY = y + 220;
         int cardW = contentW - 36;
-        int cardH = Math.min(230, h - 190);
+        int cardH = Math.max(70, Math.min(190, h - 290));
 
         g.glass()
                 .dimensions(cardX, cardY, cardW, cardH)
@@ -247,29 +334,32 @@ public final class AccountManagerScreen extends WLScreen {
         // GLASS ICON
         g.radialGlow(
                 cardX + cardW / 2f,
-                cardY + 74,
-                74f,
+                cardY + 55,
+                60f,
                 0x1E78AFFF
         );
 
         g.glass()
                 .dimensions(
                         cardX + cardW / 2f - 26,
-                        cardY + 34,
-                        52, 52
+                        cardY + 25,
+                        52,
+                        52
                 )
                 .cornerRadius(26)
-                .style(new GlassStyle()
-                        .layer(4)
-                        .blurRadius(10)
-                        .tint(0xFF8CB8FF, 0.16f)
-                        .refractionStrength(0.8f)
-                        .refractionThickness(8f)
-                        .refractionFactor(1.7f)
-                        .refractionDispersion(1.4f)
-                        .brightEdge(0.35f)
-                        .rimLight(0xFFE7F2FF, 0.35f)
-                        .outline(0.8f, 0xFFE7F2FF, 0.24f))
+                .style(
+                        new GlassStyle()
+                                .layer(4)
+                                .blurRadius(10)
+                                .tint(0xFF8CB8FF, 0.16f)
+                                .refractionStrength(0.8f)
+                                .refractionThickness(8f)
+                                .refractionFactor(1.7f)
+                                .refractionDispersion(1.4f)
+                                .brightEdge(0.35f)
+                                .rimLight(0xFFE7F2FF, 0.35f)
+                                .outline(0.8f, 0xFFE7F2FF, 0.24f)
+                )
                 .extract();
 
         // EMPTY STATE TEXT
@@ -279,39 +369,36 @@ public final class AccountManagerScreen extends WLScreen {
                 textRenderer,
                 title,
                 cardX + (cardW - textRenderer.width(title)) / 2,
-                cardY + 108,
+                cardY + 92,
                 WHITE
         );
 
-        String subtitle =
-                "Add a Microsoft account to get started.";
+        String subtitle = "Verified profiles will appear here.";
 
         g.text(
                 textRenderer,
                 subtitle,
                 cardX + (cardW - textRenderer.width(subtitle)) / 2,
-                cardY + 130,
+                cardY + 114,
                 SECONDARY
         );
 
-        String detail =
-                "Your saved profiles will be listed here.";
-
+        // FOOTER
         g.text(
                 textRenderer,
-                detail,
-                cardX + (cardW - textRenderer.width(detail)) / 2,
-                cardY + 150,
+                status,
+                contentX + 20,
+                y + h - 82,
                 MUTED
         );
 
-        // FOOTER
-        g.text(textRenderer, status,
-                contentX + 20, y + h - 82, MUTED);
-
-        g.text(textRenderer,
-                "TOKENS ARE STORED LOCALLY",
-                contentX + 20, y + h - 48, MUTED);
+        g.text(
+                textRenderer,
+                "TOKENS ARE NEVER DISPLAYED IN LOGS",
+                contentX + 20,
+                y + h - 48,
+                MUTED
+        );
     }
 
     @Override
